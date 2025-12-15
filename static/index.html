@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeniusLirik - Generator Lirik LSTM</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e1a 0%, #1a1f35 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        
+        .header { padding: 20px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #7c3aed, #db2777);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .nav-links { display: flex; gap: 30px; list-style: none; }
+        .nav-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            transition: color 0.3s ease;
+            cursor: pointer;
+        }
+        .nav-links a:hover { color: #ffffff; }
+        
+        .main { padding: 60px 0; }
+        
+        .hero { text-align: center; margin-bottom: 60px; }
+        .hero h1 {
+            font-size: 48px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #7c3aed, #db2777);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+        .hero p { font-size: 20px; color: #94a3b8; margin-bottom: 40px; }
+        
+        .model-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .tab-btn {
+            padding: 12px 25px;
+            background: rgba(37, 43, 66, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+            cursor: pointer;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            white-space: nowrap;
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(135deg, #7c3aed, #db2777);
+            color: white;
+            border-color: transparent;
+        }
+        
+        .tab-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .input-section {
+            background: rgba(37, 43, 66, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .input-group { margin-bottom: 25px; }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(26, 31, 53, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: #ffffff;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+        }
+        
+        .input-field:disabled {
+            background: rgba(26, 31, 53, 0.4);
+            cursor: not-allowed;
+        }
+        
+        .input-field::placeholder { color: #64748b; }
+        
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .select-field {
+            appearance: none;
+            background: rgba(26, 31, 53, 0.8) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 8L2 4h8z'/%3E%3C/svg%3E") no-repeat right 15px center;
+            cursor: pointer;
+        }
+        
+        .slider-container { margin-top: 10px; }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            appearance: none;
+            cursor: pointer;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7c3aed, #db2777);
+            cursor: pointer;
+        }
+        
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #64748b;
+        }
+        
+        .slider-value {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: 600;
+            color: #7c3aed;
+        }
+        
+        .number-input {
+            text-align: center;
+        }
+        
+        .generate-btn {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #7c3aed, #db2777);
+            border: none;
+            border-radius: 15px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(124, 58, 237, 0.3);
+        }
+        
+        .generate-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .output-section {
+            background: rgba(37, 43, 66, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+            margin-top: 40px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .output-header h3 {
+            font-size: 24px;
+            background: linear-gradient(135deg, #7c3aed, #db2777);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .action-buttons { display: flex; gap: 15px; }
+        
+        .action-btn {
+            padding: 10px 20px;
+            background: rgba(26, 31, 53, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .action-btn:hover {
+            background: rgba(124, 58, 237, 0.3);
+            border-color: #7c3aed;
+        }
+        
+        .lyrics-output {
+            font-family: 'Courier New', monospace;
+            line-height: 1.8;
+            font-size: 16px;
+            white-space: pre-wrap;
+            color: #e2e8f0;
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .lyrics-output::-webkit-scrollbar { width: 8px; }
+        .lyrics-output::-webkit-scrollbar-track {
+            background: rgba(26, 31, 53, 0.5);
+            border-radius: 4px;
+        }
+        .lyrics-output::-webkit-scrollbar-thumb {
+            background: rgba(124, 58, 237, 0.6);
+            border-radius: 4px;
+        }
+        .lyrics-output::-webkit-scrollbar-thumb:hover {
+            background: rgba(124, 58, 237, 0.8);
+        }
+        
+        .lyrics-section { margin-bottom: 25px; }
+        
+        .section-label {
+            font-weight: bold;
+            background: linear-gradient(135deg, #7c3aed, #db2777);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .section-content { color: #e2e8f0; margin-left: 0; }
+        
+        .error-message {
+            background: rgba(219, 39, 119, 0.2);
+            border: 1px solid #db2777;
+            color: #fce7f3;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            display: none;
+            text-align: center;
+        }
+        
+        .about-section {
+            background: rgba(37, 43, 66, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: 40px;
+            display: none;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .about-section h2 {
+            font-size: 28px;
+            background: linear-gradient(135deg, #7c3aed, #db2777);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+        
+        .about-section p {
+            color: #94a3b8;
+            line-height: 1.7;
+            margin-bottom: 15px;
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 36px; }
+            .hero p { font-size: 18px; }
+            .input-row { grid-template-columns: 1fr; }
+            .nav { flex-direction: column; text-align: center; }
+            .nav-links { gap: 20px; }
+            .action-buttons { flex-direction: column; width: 100%; }
+            .action-btn { width: 100%; text-align: center; }
+            .model-tabs { gap: 10px; }
+            .tab-btn { padding: 10px 15px; font-size: 14px; }
+        }
+        
+        @media (max-width: 480px) {
+            .input-section, .output-section, .about-section { padding: 25px; }
+            .hero h1 { font-size: 28px; }
+        }
+    
+        /* Help Modal Styles */
+        .help-btn {
+            background: linear-gradient(135deg, #7c3aed, #db2777);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(124, 58, 237, 0.3);
+        }
+
+        .help-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(124, 58, 237, 0.4);
+        }
+
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(124, 58, 237, 0.3);
+        }
+
+        .module-title {
+            margin: 0;
+            color: #a78bfa;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .help-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .help-modal-content {
+            background: linear-gradient(135deg, #1a1f35 0%, #0a0e1a 100%);
+            margin: 5% auto;
+            padding: 0;
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(124, 58, 237, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        .help-modal-header {
+            background: linear-gradient(135deg, #7c3aed, #db2777);
+            padding: 25px 30px;
+            border-radius: 20px 20px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .help-modal-header h3 {
+            margin: 0;
+            font-size: 24px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .help-close {
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            background: rgba(255, 255, 255, 0.2);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .help-close:hover {
+            transform: rotate(90deg);
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .help-modal-body {
+            padding: 30px;
+        }
+
+        .help-step {
+            background: rgba(124, 58, 237, 0.1);
+            border-left: 4px solid #7c3aed;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .help-step:hover {
+            background: rgba(124, 58, 237, 0.15);
+            transform: translateX(5px);
+        }
+
+        .help-step h4 {
+            color: #a78bfa;
+            margin-bottom: 10px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .help-step p {
+            color: #cbd5e1;
+            margin: 8px 0;
+            line-height: 1.6;
+        }
+
+        .help-step code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: #7dd3fc;
+            font-family: 'Courier New', monospace;
+        }
+
+        .help-tip {
+            background: rgba(219, 39, 119, 0.1);
+            border-left: 4px solid #db2777;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .help-tip p {
+            color: #fda4af;
+            margin: 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <nav class="nav">
+                <div class="logo">GeniusLirik</div>
+                <ul class="nav-links">
+                    <li><a onclick="showSection('home')">Beranda</a></li>
+                    <li><a onclick="showSection('about')">Tentang</a></li>
+                    <li><a href="#">Kontak</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main" id="home-section">
+        <div class="container">
+            <div class="hero">
+                <h1>Ciptakan Lirik Lagu</h1>
+                <p>dengan Kekuatan LSTM</p>
+            </div>
+
+            <div class="model-tabs">
+                <button class="tab-btn" id="indonesian-tab" onclick="switchModel('indonesian')">Indonesia Artis</button>
+                <button class="tab-btn" id="indonesiangeneric-tab" onclick="switchModel('indonesiangeneric')">Indonesia Generik</button>
+                <button class="tab-btn" id="generic-tab" onclick="switchModel('generic')">English Generic</button>
+                <button class="tab-btn" id="artist-tab" onclick="switchModel('artist')">English Artist</button>
+            </div>
+
+            <!-- Indonesian Artist Interface -->
+            <div id="indonesian-interface" class="input-section" style="display: none;">
+                <div class="module-header">
+                    <h3 class="module-title">📝 Generator Lirik Indonesia Artis</h3>
+                    <button class="help-btn" onclick="openHelp('indonesian')">
+                        <span>❓</span> Panduan Penggunaan
+                    </button>
+                </div>
+                <div class="input-group">
+                    <label for="theme-indonesian">Tema Lirik</label>
+                    <input type="text" id="theme-indonesian" class="input-field" placeholder="Masukkan tema lirik (mis: hujan dan kenangan)..." maxlength="200">
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="genre-indonesian">Pilih Genre</label>
+                        <select id="genre-indonesian" class="input-field select-field" onchange="fetchArtistsIndonesian(this.value)">
+                            <option value="pop">Pop</option>
+                            <option value="rock">Rock</option>
+                            <option value="dangdut">Dangdut</option>
+                            <option value="indie">Indie</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="artist-select-indonesian">Pilih Artis</label>
+                        <select id="artist-select-indonesian" class="input-field select-field" disabled>
+                            <option value="">Pilih genre dulu...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="num-words-indonesian">Jumlah Kata (Total)</label>
+                        <input type="number" id="num-words-indonesian" class="input-field number-input" value="200" min="50" max="500" step="10">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="temperature-indonesian">Kreativitas (Suhu)</label>
+                        <div class="slider-container">
+                            <input type="range" id="temperature-indonesian" class="slider" min="0.5" max="1.5" step="0.1" value="0.85" oninput="updateTemperatureValue('temperature-value-indonesian', this.value)">
+                            <div class="slider-labels">
+                                <span>Konservatif</span>
+                                <span>Seimbang</span>
+                                <span>Kreatif</span>
+                            </div>
+                            <div class="slider-value" id="temperature-value-indonesian">0.85</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="generate-btn" onclick="generateIndonesianLyrics()" id="generate-button-indonesian">
+                    <div class="loading-spinner" id="loading-spinner-indonesian"></div>
+                    <span id="button-text-indonesian">BUAT LIRIK INDONESIA ARTIS</span>
+                </button>
+
+                <div class="error-message" id="error-message-indonesian"></div>
+            </div>
+
+            <!-- Indonesian Generic Interface -->
+            <div id="indonesiangeneric-interface" class="input-section" style="display: none;">
+                <div class="module-header">
+                    <h3 class="module-title">📝 Generator Lirik Indonesia Generik</h3>
+                    <button class="help-btn" onclick="openHelp('indonesiangeneric')">
+                        <span>❓</span> Panduan Penggunaan
+                    </button>
+                </div>
+                <div class="input-group">
+                    <label for="seed-text-indonesian-generic">Teks Awal / Tema</label>
+                    <input type="text" id="seed-text-indonesian-generic" class="input-field" placeholder="Masukkan beberapa kata awal atau tema..." maxlength="100">
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="genre-indonesian-generic">Pilih Genre</label>
+                        <select id="genre-indonesian-generic" class="input-field select-field">
+                            <option value="pop">Pop</option>
+                            <option value="rock">Rock</option>
+                            <option value="dangdut">Dangdut</option>
+                            <option value="indie">Indie</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="num-words-indonesian-generic">Jumlah Kata (Total)</label>
+                        <input type="number" id="num-words-indonesian-generic" class="input-field number-input" value="200" min="50" max="500" step="10">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="temperature-indonesian-generic">Kreativitas (Suhu)</label>
+                    <div class="slider-container">
+                        <input type="range" id="temperature-indonesian-generic" class="slider" min="0.5" max="1.5" step="0.1" value="1.0" oninput="updateTemperatureValue('temperature-value-indonesian-generic', this.value)">
+                        <div class="slider-labels">
+                            <span>Konservatif</span>
+                            <span>Seimbang</span>
+                            <span>Kreatif</span>
+                        </div>
+                        <div class="slider-value" id="temperature-value-indonesian-generic">1.0</div>
+                    </div>
+                </div>
+
+                <button class="generate-btn" onclick="generateIndonesianGenericLyrics()" id="generate-button-indonesian-generic">
+                    <div class="loading-spinner" id="loading-spinner-indonesian-generic"></div>
+                    <span id="button-text-indonesian-generic">BUAT LIRIK INDONESIA GENERIK</span>
+                </button>
+
+                <div class="error-message" id="error-message-indonesian-generic"></div>
+            </div>
+
+            <!-- English Generic Interface -->
+            <div id="generic-interface" class="input-section" style="display: none;">
+                <div class="module-header">
+                    <h3 class="module-title">📝 English Generic Lyrics Generator</h3>
+                    <button class="help-btn" onclick="openHelp('generic')">
+                        <span>❓</span> Usage Guide
+                    </button>
+                </div>
+                <div class="input-group">
+                    <label for="seed-text-generic">Seed Text</label>
+                    <input type="text" id="seed-text-generic" class="input-field" placeholder="Enter your song idea or theme..." maxlength="200">
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="genre-generic">Choose Genre</label>
+                        <select id="genre-generic" class="input-field select-field">
+                            <option value="pop">Pop</option>
+                            <option value="rock">Rock</option>
+                            <option value="rap">Rap</option>
+                            <option value="indie">Indie</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="num-words-generic">Number of Words (Total)</label>
+                        <input type="number" id="num-words-generic" class="input-field number-input" value="200" min="50" max="500" step="10">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="temperature-generic">Temperature (Creativity)</label>
+                    <div class="slider-container">
+                        <input type="range" id="temperature-generic" class="slider" min="0.5" max="1.5" step="0.1" value="0.8" oninput="updateTemperatureValue('temperature-value-generic', this.value)">
+                        <div class="slider-labels">
+                            <span>Conservative</span>
+                            <span>Balanced</span>
+                            <span>Creative</span>
+                        </div>
+                        <div class="slider-value" id="temperature-value-generic">0.8</div>
+                    </div>
+                </div>
+
+                <button class="generate-btn" onclick="generateGenericLyrics()" id="generate-button-generic">
+                    <div class="loading-spinner" id="loading-spinner-generic"></div>
+                    <span id="button-text-generic">GENERATE EN Generic</span>
+                </button>
+
+                <div class="error-message" id="error-message-generic"></div>
+            </div>
+
+            <!-- English Artist Interface -->
+            <div id="artist-interface" class="input-section" style="display: none;">
+                <div class="module-header">
+                    <h3 class="module-title">📝 English Artist Style Generator</h3>
+                    <button class="help-btn" onclick="openHelp('artist')">
+                        <span>❓</span> Usage Guide
+                    </button>
+                </div>
+                <div class="input-group">
+                    <label for="seed-text-artist">Seed Text</label>
+                    <input type="text" id="seed-text-artist" class="input-field" placeholder="Enter your song idea or theme..." maxlength="200">
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="num-words-artist">Number of Words</label>
+                        <input type="number" id="num-words-artist" class="input-field number-input" value="150" min="20" max="400" step="10">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="genre-artist">Choose Genre</label>
+                        <select id="genre-artist" class="input-field select-field" onchange="fetchArtists(this.value)">
+                            <option value="pop">Pop</option>
+                            <option value="rock">Rock</option>
+                            <option value="rap">Rap</option>
+                            <option value="indie">Indie</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="artist-select">Choose Artist</label>
+                        <select id="artist-select" class="input-field select-field" disabled>
+                            <option value="">Loading artists...</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="temperature-artist">Temperature (Creativity)</label>
+                        <div class="slider-container">
+                            <input type="range" id="temperature-artist" class="slider" min="0.5" max="1.5" step="0.1" value="0.85" oninput="updateTemperatureValue('temperature-value-artist', this.value)">
+                            <div class="slider-labels">
+                                <span>Conservative</span>
+                                <span>Balanced</span>
+                                <span>Creative</span>
+                            </div>
+                            <div class="slider-value" id="temperature-value-artist">0.85</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="generate-btn" onclick="generateArtistLyrics()" id="generate-button-artist">
+                    <div class="loading-spinner" id="loading-spinner-artist"></div>
+                    <span id="button-text-artist">GENERATE EN Artist Style</span>
+                </button>
+
+                <div class="error-message" id="error-message-artist"></div>
+            </div>
+
+            <!-- Output Section -->
+            <div class="output-section" id="output-section">
+                <div class="output-header">
+                    <h3>Hasil Lirik</h3>
+                    <div class="action-buttons">
+                        <button class="action-btn" onclick="copyToClipboard()" title="Salin ke Clipboard">📋 Salin</button>
+                        <button class="action-btn" onclick="downloadLyrics()" title="Unduh sebagai file .txt">💾 Unduh</button>
+                    </div>
+                </div>
+                <div class="lyrics-output" id="lyrics-content">
+                    <!-- Hasil lirik akan ditampilkan di sini -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- About Section -->
+    <section class="about-section" id="about-section">
+        <div class="container">
+            <h2>Tentang GeniusLirik</h2>
+            <p>GeniusLirik adalah sebuah proyek yang bertujuan untuk menghasilkan lirik lagu secara otomatis menggunakan model Recurrent Neural Network (RNN), khususnya arsitektur Long Short-Term Memory (LSTM). Proyek ini dilatih menggunakan dataset lirik lagu berbahasa Indonesia dan Inggris dari berbagai genre dan artis.</p>
+
+            <div style="background: linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(219, 39, 119, 0.15)); border-left: 4px solid #7c3aed; padding: 25px; margin: 25px 0; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                <p style="margin-bottom: 12px; font-size: 18px;"><strong>📚 Tugas Akhir Teknik Informatika</strong></p>
+                <p style="color: #cbd5e1; margin-bottom: 15px; line-height: 1.6;">Program ini dikembangkan dalam upaya untuk menyelesaikan Tugas Akhir Program Studi Teknik Informatika di <strong style="color: #fff;">Universitas Tarumanagara</strong>.</p>
+                <div style="border-top: 1px solid rgba(255, 255, 255, 0.2); padding-top: 15px; margin-top: 15px;">
+                    <p style="margin-bottom: 8px;"><strong>👨‍💻 Pembuat Program:</strong> <span style="color: #a78bfa;">Kenneth Marlon Tan</span></p>
+                    <p style="margin-bottom: 0;"><strong>👨‍🏫 Dosen Pembimbing:</strong> <span style="color: #a78bfa;">Darius Andana Haris, S.KOM., M.T.I.</span></p>
+                </div>
+            </div>
+
+            <p>Model LSTM dipilih karena kemampuannya dalam mempelajari pola sekuensial jangka panjang yang umum ditemukan dalam teks seperti lirik lagu. Aplikasi ini menyediakan beberapa model:</p>
+            <ul style="margin-left: 20px; line-height: 2;">
+                <li><strong>Indonesia Artis:</strong> Menghasilkan lirik lengkap dengan struktur lagu (verse, chorus, dll.) dalam gaya artis Indonesia tertentu.</li>
+                <li><strong>Indonesia Generik:</strong> Menghasilkan lirik dengan struktur lengkap berbahasa Indonesia berdasarkan teks awal atau tema yang diberikan.</li>
+                <li><strong>English Generic:</strong> Menghasilkan lirik dengan struktur lengkap berbahasa Inggris berdasarkan teks awal dan genre, dengan filter kata kasar.</li>
+                <li><strong>English Artist:</strong> Menghasilkan blok lirik berbahasa Inggris dalam gaya artis tertentu.</li>
+            </ul>
+            <p style="margin-top: 20px;">Semua model dilengkapi dengan kontrol <strong>Number of Words</strong> untuk mengatur panjang lirik yang dihasilkan, serta kontrol <strong>Temperature</strong> untuk mengatur tingkat kreativitas model.</p>
+        </div>
+    </section>
+
+    <script>
+        // Current state
+        let currentModel = 'indonesian'; // Default ke tab Indonesia Artis
+        let generatedLyrics = ''; // Plain text for copy/download
+
+        // Model switching
+        function switchModel(model) {
+            currentModel = model;
+
+            // Update tab buttons and interfaces
+            ['generic', 'artist', 'indonesian', 'indonesiangeneric'].forEach(id => {
+                const tab = document.getElementById(`${id}-tab`);
+                const interfaceEl = document.getElementById(`${id}-interface`);
+                if (tab) tab.classList.remove('active');
+                if (interfaceEl) interfaceEl.style.display = 'none';
+            });
+
+            const activeTab = document.getElementById(`${model}-tab`);
+            const activeInterface = document.getElementById(`${model}-interface`);
+            if (activeTab) activeTab.classList.add('active');
+            if (activeInterface) activeInterface.style.display = 'block';
+
+            // Sembunyikan output dan about saat ganti tab model
+            showSection('home', false);
+
+            // Muat artis jika tab Artist EN atau ID Artist diaktifkan
+            if (model === 'artist') {
+                const selectedGenre = document.getElementById('genre-artist').value;
+                fetchArtists(selectedGenre);
+            } else if (model === 'indonesian') {
+                const selectedGenre = document.getElementById('genre-indonesian').value;
+                fetchArtistsIndonesian(selectedGenre);
+            }
+        }
+
+        // Section switching
+        function showSection(sectionId, doScroll = true) {
+            ['home', 'about'].forEach(id => {
+                const section = document.getElementById(`${id}-section`);
+                if (section) section.style.display = (id === sectionId) ? 'block' : 'none';
+            });
+
+            // Scroll hanya jika diminta
+            if (doScroll) {
+                const targetSection = document.getElementById(`${sectionId}-section`);
+                if (targetSection) targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            // Jika kembali ke home, pastikan output section juga tersembunyi jika belum ada hasil
+            if (sectionId === 'home' && !generatedLyrics) {
+                document.getElementById('output-section').style.display = 'none';
+            }
+        }
+
+        // Temperature slider update
+        function updateTemperatureValue(elementId, value) {
+            const valueElement = document.getElementById(elementId);
+            if (valueElement) {
+                valueElement.textContent = parseFloat(value).toFixed(2);
+            }
+        }
+
+        // Fetch English artists
+        async function fetchArtists(genre) {
+            const select = document.getElementById('artist-select');
+            select.disabled = true;
+            select.innerHTML = '<option value="">Loading artists...</option>';
+
+            try {
+                const response = await fetch(`/api/artists/${genre}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const data = await response.json();
+
+                if (data.artists && data.artists.length > 0) {
+                    select.innerHTML = '';
+                    data.artists.forEach(artist => {
+                        const option = document.createElement('option');
+                        option.value = artist;
+                        option.textContent = artist;
+                        select.appendChild(option);
+                    });
+                    select.disabled = false;
+                } else {
+                    select.innerHTML = '<option value="">No artists available</option>';
+                }
+            } catch (error) {
+                console.error('Error fetching EN artists:', error);
+                select.innerHTML = '<option value="">Error loading</option>';
+            }
+        }
+
+        // Fetch Indonesian artists
+        async function fetchArtistsIndonesian(genre) {
+            const select = document.getElementById('artist-select-indonesian');
+            select.disabled = true;
+            select.innerHTML = '<option value="">Memuat artis...</option>';
+
+            try {
+                const response = await fetch(`/api/artists-indonesian/${genre}`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const data = await response.json();
+
+                if (data.artists && data.artists.length > 0) {
+                    select.innerHTML = '';
+                    data.artists.forEach(artist => {
+                        const option = document.createElement('option');
+                        option.value = artist;
+                        option.textContent = artist;
+                        select.appendChild(option);
+                    });
+                    select.disabled = false;
+                } else {
+                    select.innerHTML = '<option value="">Artis tidak ditemukan</option>';
+                }
+            } catch (error) {
+                console.error('Error fetching ID artists:', error);
+                select.innerHTML = '<option value="">Gagal memuat</option>';
+            }
+        }
+
+        // --- GENERATION FUNCTIONS ---
+
+        // Generate ENGLISH GENERIC
+        async function generateGenericLyrics() {
+            const seedText = document.getElementById('seed-text-generic').value.trim();
+            const genre = document.getElementById('genre-generic').value;
+            const temperature = parseFloat(document.getElementById('temperature-generic').value);
+            const num_words = parseInt(document.getElementById('num-words-generic').value);
+
+            if (!seedText) {
+                alert('Please enter some seed text!');
+                return;
+            }
+
+            const button = document.getElementById('generate-button-generic');
+            const spinner = document.getElementById('loading-spinner-generic');
+            const buttonText = document.getElementById('button-text-generic');
+            const errorBox = document.getElementById('error-message-generic');
+
+            setLoadingState(button, spinner, buttonText, 'GENERATING...', true);
+            errorBox.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ seedText, genre, temperature, num_words })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) throw new Error(data.error || 'Server error');
+
+                displayLyrics(data.lyrics, `EN Generic (${num_words} words)`);
+            } catch (error) {
+                console.error('Error:', error);
+                errorBox.textContent = `Error: ${error.message}`;
+                errorBox.style.display = 'block';
+            } finally {
+                setLoadingState(button, spinner, buttonText, 'GENERATE EN Generic', false);
+            }
+        }
+
+        // Generate ENGLISH ARTIST
+        async function generateArtistLyrics() {
+            const seedText = document.getElementById('seed-text-artist').value.trim();
+            const genre = document.getElementById('genre-artist').value;
+            const artist = document.getElementById('artist-select').value;
+            const temperature = parseFloat(document.getElementById('temperature-artist').value);
+            const numWords = parseInt(document.getElementById('num-words-artist').value);
+
+            if (!seedText || !artist) {
+                alert('Please enter seed text and select an artist!');
+                return;
+            }
+
+            if (isNaN(numWords) || numWords < 10) {
+                alert('Please enter a valid number of words (min 10).');
+                return;
+            }
+
+            const button = document.getElementById('generate-button-artist');
+            const spinner = document.getElementById('loading-spinner-artist');
+            const buttonText = document.getElementById('button-text-artist');
+            const errorBox = document.getElementById('error-message-artist');
+
+            setLoadingState(button, spinner, buttonText, 'GENERATING...', true);
+            errorBox.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/generate-artist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ seedText, genre, artist, temperature, num_words: numWords })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) throw new Error(data.error || 'Server error');
+
+                displayLyrics(data.lyrics, `EN Artist: ${artist} (${numWords} words)`);
+            } catch (error) {
+                console.error('Error:', error);
+                errorBox.textContent = `Error: ${error.message}`;
+                errorBox.style.display = 'block';
+            } finally {
+                setLoadingState(button, spinner, buttonText, 'GENERATE EN Artist Style', false);
+            }
+        }
+
+        // Generate INDONESIAN ARTIST
+        async function generateIndonesianLyrics() {
+            const theme = document.getElementById('theme-indonesian').value.trim();
+            const genre = document.getElementById('genre-indonesian').value;
+            const artist = document.getElementById('artist-select-indonesian').value;
+            const temperature = parseFloat(document.getElementById('temperature-indonesian').value);
+            const num_words = parseInt(document.getElementById('num-words-indonesian').value);
+
+            if (!theme || !artist) {
+                alert('Silakan masukkan Tema Lirik dan pilih Artis!');
+                return;
+            }
+
+            const button = document.getElementById('generate-button-indonesian');
+            const spinner = document.getElementById('loading-spinner-indonesian');
+            const buttonText = document.getElementById('button-text-indonesian');
+            const errorBox = document.getElementById('error-message-indonesian');
+
+            setLoadingState(button, spinner, buttonText, 'MEMPROSES...', true);
+            errorBox.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/generate-indonesian', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ theme, genre, artist, temperature, num_words })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) throw new Error(data.error || 'Server error');
+
+                displayLyrics(data.lyrics, `ID Artist: ${artist} (${num_words} kata)`);
+            } catch (error) {
+                console.error('Error:', error);
+                errorBox.textContent = `Error: ${error.message}`;
+                errorBox.style.display = 'block';
+            } finally {
+                setLoadingState(button, spinner, buttonText, 'BUAT LIRIK INDONESIA ARTIS', false);
+            }
+        }
+
+        // Generate INDONESIAN GENERIC
+        async function generateIndonesianGenericLyrics() {
+            const seedText = document.getElementById('seed-text-indonesian-generic').value.trim();
+            const temperature = parseFloat(document.getElementById('temperature-indonesian-generic').value);
+            const genre = document.getElementById('genre-indonesian-generic').value;
+            const num_words = parseInt(document.getElementById('num-words-indonesian-generic').value);
+
+            if (!seedText) {
+                alert('Silakan masukkan Teks Awal / Tema!');
+                return;
+            }
+
+            const button = document.getElementById('generate-button-indonesian-generic');
+            const spinner = document.getElementById('loading-spinner-indonesian-generic');
+            const buttonText = document.getElementById('button-text-indonesian-generic');
+            const errorBox = document.getElementById('error-message-indonesian-generic');
+
+            setLoadingState(button, spinner, buttonText, 'MEMPROSES...', true);
+            errorBox.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/generate-indonesian-generic', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ seedText, temperature, genre, num_words })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.error) throw new Error(data.error || 'Server error');
+
+                displayLyrics(data.lyrics, `ID Generic (${num_words} kata)`);
+            } catch (error) {
+                console.error('Error:', error);
+                errorBox.textContent = `Error: ${error.message}`;
+                errorBox.style.display = 'block';
+            } finally {
+                setLoadingState(button, spinner, buttonText, 'BUAT LIRIK INDONESIA GENERIK', false);
+            }
+        }
+
+        // --- HELPER FUNCTIONS ---
+
+        // Set loading state
+        function setLoadingState(button, spinner, buttonText, text, isLoading) {
+            button.disabled = isLoading;
+            spinner.style.display = isLoading ? 'inline-block' : 'none';
+            buttonText.textContent = text;
+        }
+
+        // Display lyrics
+        function displayLyrics(lyricsData, generationType) {
+            let formattedHtml = '';
+            let plainText = '';
+
+            document.querySelector('.output-section h3').textContent = `Hasil Lirik: ${generationType}`;
+
+            // Cek jika lyricsData adalah objek struktur atau string blok teks
+            if (typeof lyricsData === 'object' && lyricsData !== null && lyricsData['generated_text'] === undefined) {
+                // Proses sebagai struktur lagu
+                const sectionOrder = ['intro', 'verse1', 'pre_chorus1', 'chorus', 'verse2', 'pre_chorus2', 'chorus2', 'bridge', 'verse3', 'outro'];
+                let contentFound = false;
+
+                sectionOrder.forEach(key => {
+                    if (lyricsData.hasOwnProperty(key) && lyricsData[key] && lyricsData[key].trim().length > 0) {
+                        const content = lyricsData[key].trim();
+
+                        // Ekstrak label asli jika ada
+                        const labelMatch = content.match(/^\[(.*?)\]/);
+                        let displayContent = content;
+                        let sectionLabel = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).replace(/_/g, ' ');
+
+                        if (labelMatch) {
+                            sectionLabel = labelMatch[1].trim();
+                            displayContent = content.substring(labelMatch[0].length).trim();
+                        }
+
+                        formattedHtml += `<div class="section-label">${sectionLabel}</div>`;
+                        formattedHtml += `<div class="section-content">${displayContent.replace(/\n/g, '<br>')}</div><br>`;
+                        plainText += `${sectionLabel}\n${displayContent}\n\n`;
+                        contentFound = true;
+                    }
+                });
+
+                // Tambahkan section lain
+                for (const key in lyricsData) {
+                    if (!sectionOrder.includes(key) && lyricsData.hasOwnProperty(key) && lyricsData[key] && lyricsData[key].trim().length > 0) {
+                        const content = lyricsData[key].trim();
+                        const labelMatch = content.match(/^\[(.*?)\]/);
+                        let displayContent = content;
+                        let sectionLabel = key;
+
+                        if (labelMatch) {
+                            sectionLabel = labelMatch[1].trim();
+                            displayContent = content.substring(labelMatch[0].length).trim();
+                        }
+
+                        formattedHtml += `<div class="section-label">${sectionLabel}</div>`;
+                        formattedHtml += `<div class="section-content">${displayContent.replace(/\n/g, '<br>')}</div><br>`;
+                        plainText += `${sectionLabel}\n${displayContent}\n\n`;
+                        contentFound = true;
+                    }
+                }
+
+                if (!contentFound) {
+                    formattedHtml = '<div class="section-content">Gagal menghasilkan struktur lirik.</div>';
+                    plainText = 'Gagal menghasilkan struktur lirik.';
+                }
+            } else if (typeof lyricsData === 'object' && lyricsData !== null && lyricsData['generated_text'] !== undefined) {
+                const content = lyricsData['generated_text'].trim();
+                if (content) {
+                    formattedHtml = `<div class="section-content">${content.replace(/\n/g, '<br>')}</div>`;
+                    plainText = content;
+                } else {
+                    formattedHtml = '<div class="section-content">Gagal menghasilkan lirik.</div>';
+                    plainText = 'Gagal menghasilkan lirik.';
+                }
+            } else {
+                formattedHtml = '<div class="section-content">Format hasil tidak dikenali.</div>';
+                plainText = 'Format hasil tidak dikenali.';
+            }
+
+            generatedLyrics = plainText.trim();
+
+            document.getElementById('lyrics-content').innerHTML = formattedHtml;
+            document.getElementById('output-section').style.display = 'block';
+            document.getElementById('output-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Copy to clipboard
+        function copyToClipboard() {
+            if (!generatedLyrics) return;
+
+            try {
+                navigator.clipboard.writeText(generatedLyrics).then(() => {
+                    const button = event.target;
+                    const originalText = button.textContent;
+                    button.textContent = '✅ Tersalin!';
+                    button.style.background = 'rgba(34, 197, 94, 0.3)';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.style.background = '';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Gagal menyalin (navigator):', err);
+                    copyFallback(generatedLyrics);
+                });
+            } catch (e) {
+                console.error('Gagal menyalin (try/catch):', e);
+                copyFallback(generatedLyrics);
+            }
+        }
+
+        // Fallback copy
+        function copyFallback(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                const button = document.querySelector('.action-btn[onclick="copyToClipboard()"]');
+                if (successful && button) {
+                    const originalText = button.textContent;
+                    button.textContent = '✅ Tersalin!';
+                    button.style.background = 'rgba(34, 197, 94, 0.3)';
+                    setTimeout(() => {
+                        button.textContent = originalText;
+                        button.style.background = '';
+                    }, 2000);
+                } else {
+                    alert('Gagal menyalin lirik. Coba lagi atau salin manual.');
+                }
+            } catch (err) {
+                console.error('Gagal menyalin (fallback):', err);
+                alert('Gagal menyalin lirik. Coba lagi atau salin manual.');
+            }
+
+            document.body.removeChild(textArea);
+        }
+
+        // Download lyrics
+        function downloadLyrics() {
+            if (!generatedLyrics) return;
+
+            const blob = new Blob([generatedLyrics], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'generated-lyrics.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set default values
+            updateTemperatureValue('temperature-value-generic', document.getElementById('temperature-generic').value);
+            updateTemperatureValue('temperature-value-artist', document.getElementById('temperature-artist').value);
+            updateTemperatureValue('temperature-value-indonesian', document.getElementById('temperature-indonesian').value);
+            updateTemperatureValue('temperature-value-indonesian-generic', document.getElementById('temperature-indonesian-generic').value);
+
+            // Tampilkan home, sembunyikan about
+            showSection('home', false);
+
+            // Muat artis untuk tab default (Indonesia Artis)
+            switchModel(currentModel);
+        });
+    
+        // Help Modal Functions
+        function openHelp(modelType) {
+            const modal = document.getElementById('help-' + modelType);
+            if (modal) {
+                modal.style.display = 'block';
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function closeHelp(modelType) {
+            const modal = document.getElementById('help-' + modelType);
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('help-modal')) {
+                event.target.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+        }
+
+        // Close modal with ESC key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                const modals = document.querySelectorAll('.help-modal');
+                modals.forEach(modal => {
+                    if (modal.style.display === 'block') {
+                        modal.style.display = 'none';
+                        document.body.style.overflow = 'auto';
+                    }
+                });
+            }
+        });
+
+    </script>
+
+    <!-- Help Modals -->
+
+    <!-- English Generic Help Modal -->
+    <div id="help-generic" class="help-modal">
+        <div class="help-modal-content">
+            <div class="help-modal-header">
+                <h3>📚 English Generic Lyrics Generator Guide</h3>
+                <span class="help-close" onclick="closeHelp('generic')">&times;</span>
+            </div>
+            <div class="help-modal-body">
+                <div class="help-step">
+                    <h4>1️⃣ Enter Seed Text</h4>
+                    <p>Type your initial words or theme in the <code>Seed Text</code> field.</p>
+                    <p><strong>Examples:</strong> <code>under the moonlight</code>, <code>broken hearts and dreams</code>, <code>dancing in the rain</code></p>
+                </div>
+
+                <div class="help-step">
+                    <h4>2️⃣ Choose Genre</h4>
+                    <p>Select your preferred music genre from the dropdown:</p>
+                    <p>• <strong>Pop</strong> - Popular music with catchy melodies</p>
+                    <p>• <strong>Rock</strong> - High-energy rock music</p>
+                    <p>• <strong>Rap</strong> - Rhythmic and rhyming lyrics</p>
+                    <p>• <strong>Indie</strong> - Alternative and experimental music</p>
+                </div>
+
+                <div class="help-step">
+                    <h4>3️⃣ Set Number of Words</h4>
+                    <p>Enter the desired length of your lyrics in the <code>Number of Words Total</code> field.</p>
+                    <p><strong>Recommended:</strong> 150-250 words for a complete song with verses and chorus</p>
+                </div>
+
+                <div class="help-step">
+                    <h4>4️⃣ Adjust Temperature (Creativity)</h4>
+                    <p>Slide the <code>Temperature</code> control to adjust creativity level:</p>
+                    <p>• <strong>Left (0.5-0.7):</strong> More structured and conservative output</p>
+                    <p>• <strong>Center (0.8):</strong> Balanced creativity (Recommended)</p>
+                    <p>• <strong>Right (1.0-1.2):</strong> More creative and experimental variations</p>
+                </div>
+
+                <div class="help-step">
+                    <h4>5️⃣ Generate Lyrics</h4>
+                    <p>Click the <strong>GENERATE EN Generic</strong> button and wait for the result.</p>
+                    <p>The lyrics will appear below with complete song structure including verses, chorus, and bridge.</p>
+                </div>
+
+                <div class="help-tip">
+                    <p><strong>💡 Note:</strong> This mode includes profanity filtering to ensure appropriate content. The lyrics are generated in a neutral style suitable for various purposes and audiences.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indonesian Artist Help Modal -->
+    <div id="help-indonesian" class="help-modal">
+        <div class="help-modal-content">
+            <div class="help-modal-header">
+                <h3>📚 Panduan Generator Lirik Indonesia Artis</h3>
+                <span class="help-close" onclick="closeHelp('indonesian')">&times;</span>
+            </div>
+            <div class="help-modal-body">
+                <div class="help-step">
+                    <h4>1️⃣ Masukkan Tema Lirik</h4>
+                    <p>Ketik kata-kata pembuka atau tema lagu Anda di kolom <code>Tema Lirik</code>.</p>
+                    <p><strong>Contoh:</strong> <code>hujan turun di sore hari</code>, <code>cinta yang hilang</code>, <code>kenangan masa lalu</code></p>
+                </div>
+
+                <div class="help-step">
+                    <h4>2️⃣ Pilih Genre Musik</h4>
+                    <p>Klik dropdown <code>Genre</code> dan pilih genre musik yang diinginkan:</p>
+                    <p>• <strong>Pop</strong> - Lagu populer dengan melodi catchy</p>
+                    <p>• <strong>Dangdut</strong> - Musik tradisional Indonesia dengan irama khas</p>
+                    <p>• <strong>Rock</strong> - Musik berenergi tinggi</p>
+                    <p>• <strong>Indie</strong> - Musik alternatif dan eksperimental</p>
+                </div>
+
+                <div class="help-step">
+                    <h4>3️⃣ Pilih Artis Indonesia</h4>
+                    <p>Pilih nama artis yang gaya penulisannya ingin Anda tiru dari dropdown <code>Artis Indonesia</code>.</p>
+                    <p><strong>Contoh:</strong> Ari Lasso, Sheila on 7, Dewa 19, dll.</p>
+                </div>
+
+                <div class="help-step">
+                    <h4>4️⃣ Tentukan Jumlah Kata</h4>
+                    <p>Masukkan angka untuk menentukan seberapa panjang lirik yang diinginkan di kolom <code>Jumlah Kata</code>.</p>
+                    <p><strong>Rekomendasi:</strong> 150-250 kata untuk satu lagu lengkap</p>
+                </div>
+
+                <div class="help-step">
+                    <h4>5️⃣ Atur Tingkat Kreativitas</h4>
+                    <p>Geser slider <code>Kreativitas (Suhu)</code> untuk mengatur variasi lirik:</p>
+                    <p>• <strong>Kiri (0.5-0.8):</strong> Lirik lebih teratur dan aman</p>
+                    <p>• <strong>Tengah (1.0):</strong> Seimbang (Rekomendasi)</p>
+                    <p>• <strong>Kanan (1.2-1.5):</strong> Lirik lebih kreatif dan eksperimental</p>
+                </div>
+
+                <div class="help-step">
+                    <h4>6️⃣ Generate Lirik</h4>
+                    <p>Klik tombol <strong>BUAT LIRIK INDONESIA ARTIS</strong> dan tunggu beberapa saat.</p>
+                    <p>Lirik akan muncul di bagian bawah dengan struktur lengkap (Verse, Chorus, Bridge, dll.)</p>
+                </div>
+
+                <div class="help-tip">
+                    <p><strong>💡 Tips:</strong> Untuk hasil terbaik, gunakan tema yang spesifik dan jelas. Semakin detail tema Anda, semakin baik hasil yang dihasilkan!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Indonesian Generic Help Modal -->
+    <div id="help-indonesiangeneric" class="help-modal">
+        <div class="help-modal-content">
+            <div class="help-modal-header">
+                <h3>📚 Panduan Generator Lirik Indonesia Generik</h3>
+                <span class="help-close" onclick="closeHelp('indonesiangeneric')">&times;</span>
+            </div>
+            <div class="help-modal-body">
+                <div class="help-step">
+                    <h4>1️⃣ Masukkan Teks Awal / Tema</h4>
+                    <p>Ketik beberapa kata atau tema di kolom <code>Teks Awal / Tema</code>.</p>
+                    <p><strong>Contoh:</strong> <code>rindu di malam sunyi</code>, <code>mimpi yang terlupakan</code></p>
+                </div>
+
+                <div class="help-step">
+                    <h4>2️⃣ Pilih Genre</h4>
+                    <p>Pilih genre musik dari dropdown:</p>
+                    <p>• Pop • Dangdut • Rock • Indie</p>
+                </div>
+
+                <div class="help-step">
+                    <h4>3️⃣ Tentukan Jumlah Kata Total</h4>
+                    <p>Masukkan angka panjang lirik yang diinginkan.</p>
+                    <p><strong>Rekomendasi:</strong> 150-250 kata</p>
+                </div>
+
+                <div class="help-step">
+                    <h4>4️⃣ Atur Kreativitas (Suhu)</h4>
+                    <p>Geser slider untuk mengatur tingkat variasi:</p>
+                    <p>• <strong>Kiri:</strong> Lebih konservatif dan terstruktur</p>
+                    <p>• <strong>Kanan:</strong> Lebih kreatif dan bervariasi</p>
+                </div>
+
+                <div class="help-step">
+                    <h4>5️⃣ Generate Lirik</h4>
+                    <p>Klik <strong>BUAT LIRIK INDONESIA GENERIK</strong> dan tunggu hasilnya.</p>
+                </div>
+
+                <div class="help-tip">
+                    <p><strong>💡 Perbedaan dengan Indonesia Artis:</strong> Mode ini tidak meniru gaya artis tertentu, sehingga hasilnya lebih netral dan umum untuk berbagai kebutuhan.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- English Artist Help Modal -->
+    <div id="help-artist" class="help-modal">
+        <div class="help-modal-content">
+            <div class="help-modal-header">
+                <h3>📚 English Artist Style Generator Guide</h3>
+                <span class="help-close" onclick="closeHelp('artist')">&times;</span>
+            </div>
+            <div class="help-modal-body">
+                <div class="help-step">
+                    <h4>1️⃣ Enter Seed Text</h4>
+                    <p>Type your initial idea or theme in the <code>Seed Text</code> field.</p>
+                    <p><strong>Examples:</strong> <code>running through the night</code>, <code>never gonna give up</code></p>
+                </div>
+
+                <div class="help-step">
+                    <h4>2️⃣ Set Number of Words</h4>
+                    <p>Enter how many words you want to generate.</p>
+                    <p><strong>Recommended:</strong> 100-200 words per section</p>
+                </div>
+
+                <div class="help-step">
+                    <h4>3️⃣ Choose Genre</h4>
+                    <p>Select the music genre from the dropdown:</p>
+                    <p>• Pop • Rock • Rap • Indie</p>
+                </div>
+
+                <div class="help-step">
+                    <h4>4️⃣ Select Artist</h4>
+                    <p>Choose an artist whose writing style you want to emulate from the <code>Choose Artist</code> dropdown.</p>
+                    <p>The generator will attempt to mimic their lyrical patterns and themes.</p>
+                </div>
+
+                <div class="help-step">
+                    <h4>5️⃣ Adjust Temperature</h4>
+                    <p>Use the <code>Temperature (Creativity)</code> slider:</p>
+                    <p>• <strong>Lower values:</strong> Stay closer to the artist's original style</p>
+                    <p>• <strong>Higher values:</strong> More experimental variations</p>
+                </div>
+
+                <div class="help-step">
+                    <h4>6️⃣ Generate Lyrics</h4>
+                    <p>Click <strong>GENERATE EN Artist Style</strong> and wait for the result.</p>
+                    <p>You'll get lyrics inspired by your chosen artist's style!</p>
+                </div>
+
+                <div class="help-tip">
+                    <p><strong>💡 Tip:</strong> The artist-specific models work best when your seed text aligns with the themes commonly found in that artist's work.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </body>
+</html>
