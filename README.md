@@ -1,4 +1,4 @@
-Download Model di Drive Berikut: 
+Download Model di Drive Berikut: https://drive.google.com/drive/folders/1hRfhAEajImvNzQdnLyIEcP96JhjVNU53?usp=sharing
 
 
 # GeniusLyrics
